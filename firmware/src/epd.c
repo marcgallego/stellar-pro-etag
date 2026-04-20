@@ -275,8 +275,8 @@ _attribute_ram_code_ void epd_display(struct date_time _time, uint16_t battery_m
     obdWriteStringCustom(&obd, (GFXfont *)&Dialog_plain_16, resolution_w - 64, 20, (char *)buff, 1);
     sprintf(buff, "%02d:%02d", _time.tm_hour, _time.tm_min);
     obdWriteStringCustom(&obd, (GFXfont *)&DSEG14_Classic_Mini_Regular_40, 75, 65, (char *)buff, 1);
-    sprintf(buff, "-----%d'C-----", EPD_read_temp());
-    obdWriteStringCustom(&obd, (GFXfont *)&Special_Elite_Regular_30, 10, 95, (char *)buff, 1);
+    sprintf(buff, "%d'C", EPD_read_temp());
+    obdWriteStringCustom(&obd, (GFXfont *)&Special_Elite_Regular_30, 75, 95, (char *)buff, 1);
     sprintf(buff, "Battery %dmV  %d%%", battery_mv, battery_level);
     obdWriteStringCustom(&obd, (GFXfont *)&Dialog_plain_16, 10, 120, (char *)buff, 1);
     FixBuffer(epd_temp, epd_buffer, resolution_w, resolution_h);

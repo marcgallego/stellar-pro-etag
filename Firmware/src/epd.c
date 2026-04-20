@@ -226,14 +226,12 @@ _attribute_ram_code_ void TIFFDraw(TIFFDRAW *pDraw)
     int x, y;
 
     s = pDraw->pPixels;
-    y = pDraw->y;                          // current line
-    d = &epd_buffer[(249 * 16) + (y / 8)]; // rotated 90 deg clockwise
-    ucDstMask = 0x80 >> (y & 7);           // destination mask
-    ucSrcMask = 0;                         // src mask
+    y = pDraw->y;                                              // current line
+    d = &epd_buffer[((epd_width - 1) * (epd_height / 8)) + (y / 8)]; // rotated 90 deg clockwise
+    ucDstMask = 0x80 >> (y & 7);                               // destination mask
+    ucSrcMask = 0;                                             // src mask
     for (x = 0; x < pDraw->iWidth; x++)
     {
-        // Slower to draw this way, but it allows us to use a single buffer
-        // instead of drawing and then converting the pixels to be the EPD format
         if (ucSrcMask == 0)
         { // load next source byte
             ucSrcMask = 0x80;
@@ -241,7 +239,7 @@ _attribute_ram_code_ void TIFFDraw(TIFFDRAW *pDraw)
         }
         if (!(uc & ucSrcMask))
         { // black pixel
-            d[-(x * 16)] &= ~ucDstMask;
+            d[-(x * (epd_height / 8))] &= ~ucDstMask;
         }
         ucSrcMask >>= 1;
     }
@@ -249,10 +247,9 @@ _attribute_ram_code_ void TIFFDraw(TIFFDRAW *pDraw)
 
 _attribute_ram_code_ void epd_display_tiff(uint8_t *pData, int iSize)
 {
-    // test G4 decoder
     epd_clear();
-    TIFF_openRAW(&tiff, 250, 122, BITDIR_MSB_FIRST, pData, iSize, TIFFDraw);
-    TIFF_setDrawParameters(&tiff, 65536, TIFF_PIXEL_1BPP, 0, 0, 250, 122, NULL);
+    TIFF_openRAW(&tiff, epd_width, epd_height, BITDIR_MSB_FIRST, pData, iSize, TIFFDraw);
+    TIFF_setDrawParameters(&tiff, 65536, TIFF_PIXEL_1BPP, 0, 0, epd_width, epd_height, NULL);
     TIFF_decode(&tiff);
     TIFF_close(&tiff);
     EPD_Display(epd_buffer, NULL, epd_buffer_size, 1);

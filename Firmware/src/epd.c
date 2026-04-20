@@ -60,43 +60,10 @@ void set_EPD_wait_flush() {
 
 
 
-// Here we detect what E-Paper display is connected
+// Set EPD model from compile-time flag
 _attribute_ram_code_ void EPD_detect_model(void)
 {
-    EPD_init();
-    // system power
-    EPD_POWER_ON();
-
-    WaitMs(10);
-    // Reset the EPD driver IC
-    gpio_write(EPD_RESET, 0);
-    WaitMs(10);
-    gpio_write(EPD_RESET, 1);
-    WaitMs(10);
-
-    // Here we neeed to detect it
-    if (EPD_BWR_296_detect())
-    {
-        epd_model = 5;
-    }
-    else if (EPD_BWR_213_detect())
-    {
-        epd_model = 2;
-    }
-//    else if (EPD_BWR_154_detect())// Right now this will never trigger, the 154 is same to 213BWR right now.
-//    {
-//        epd_model = 3;
-//    }
-    else if (EPD_BW_213_ice_detect())
-    {
-        epd_model = 4;
-    }
-    else
-    {
-        epd_model = 1;
-    }
-    epd_model = 5; // FIXME: only for bwr_296
-    EPD_POWER_OFF();
+    epd_model = EPD_DEFAULT_MODEL;
 }
 
 _attribute_ram_code_ uint8_t EPD_read_temp(void)
@@ -121,10 +88,10 @@ _attribute_ram_code_ uint8_t EPD_read_temp(void)
         epd_temperature = EPD_BW_213_read_temp();
     else if (epd_model == 2)
         epd_temperature = EPD_BWR_213_read_temp();
-//    else if (epd_model == 3)
-//        epd_temperature = EPD_BWR_154_read_temp();
-    else if (epd_model == 4 || epd_model == 5)
+    else if (epd_model == 4)
         epd_temperature = EPD_BW_213_ice_read_temp();
+    else if (epd_model == 5)
+        epd_temperature = EPD_BWR_296_read_temp();
 
     EPD_POWER_OFF();
 
@@ -173,10 +140,10 @@ _attribute_ram_code_ void epd_set_sleep(void)
         EPD_BW_213_set_sleep();
     else if (epd_model == 2)
         EPD_BWR_213_set_sleep();
-//    else if (epd_model == 3)
-//        EPD_BWR_154_set_sleep();
-    else if (epd_model == 4 || epd_model == 5)
+    else if (epd_model == 4)
         EPD_BW_213_ice_set_sleep();
+    else if (epd_model == 5)
+        EPD_BWR_296_set_sleep();
 
     EPD_POWER_OFF();
     epd_update_state = 0;
@@ -376,11 +343,17 @@ void epd_update(struct date_time _time, uint16_t battery_mv, int16_t temperature
 
 void epd_display_time_with_date(struct date_time _time, uint16_t battery_mv, int16_t temperature, uint8_t full_or_partial) {
     uint16_t battery_level;
+    uint16_t w, h;
+
+    if (epd_model == 2) { w = 250; h = 128; }
+    else if (epd_model == 4) { w = 212; h = 104; }
+    else if (epd_model == 5) { w = 296; h = 128; }
+    else { w = 250; h = 128; }
 
     epd_clear();
 
-    obdCreateVirtualDisplay(&obd, epd_width, epd_height, epd_temp);
-    obdFill(&obd, 0, 0); // fill with white
+    obdCreateVirtualDisplay(&obd, w, h, epd_temp);
+    obdFill(&obd, 0, 0);
 
     char buff[100];
     battery_level = get_battery_level(battery_mv);
@@ -396,46 +369,53 @@ void epd_display_time_with_date(struct date_time _time, uint16_t battery_mv, int
 
     obdWriteStringCustom(&obd, (GFXfont *)&Dialog_plain_16_zh, 120, 21, (char *)buff, 1);
 
-    obdRectangle(&obd, 252, 10, 255, 14, 1, 1);
-    obdRectangle(&obd, 255, 2, 295, 22, 1, 1);
+    // Battery icon (right-aligned)
+    obdRectangle(&obd, w - 44, 10, w - 41, 14, 1, 1);
+    obdRectangle(&obd, w - 41, 2, w - 1, 22, 1, 1);
 
     sprintf(buff, "%d", battery_level);
-    obdWriteStringCustom(&obd, (GFXfont *)&Dialog_plain_16, 259, 18, (char *)buff, 0);
+    obdWriteStringCustom(&obd, (GFXfont *)&Dialog_plain_16, w - 37, 18, (char *)buff, 0);
 
-    obdRectangle(&obd, 0, 25, 295, 27, 1, 1);
+    // Horizontal separator
+    obdRectangle(&obd, 0, 25, w - 1, 27, 1, 1);
 
+    // Clock (centered in main area)
+    uint16_t sidebar_x = w - 82;
     sprintf(buff, "%02d:%02d", _time.tm_hour, _time.tm_min);
-    obdWriteStringCustom(&obd, (GFXfont *)&DSEG14_Classic_Mini_Regular_40, 35, 85, (char *)buff, 1);
+    obdWriteStringCustom(&obd, (GFXfont *)&DSEG14_Classic_Mini_Regular_40, (sidebar_x - 180) / 2, 85, (char *)buff, 1);
 
+    // Sidebar: temp + voltage
     sprintf(buff, "   %d'C", EPD_read_temp());
-    obdWriteStringCustom(&obd, (GFXfont *)&Dialog_plain_16, 216, 50, (char *)buff, 1);
+    obdWriteStringCustom(&obd, (GFXfont *)&Dialog_plain_16, sidebar_x + 2, 50, (char *)buff, 1);
 
-    obdRectangle(&obd, 216, 60, 295, 62, 1, 1);
+    obdRectangle(&obd, sidebar_x + 2, 60, w - 1, 62, 1, 1);
 
     sprintf(buff, " %dmV", battery_mv);
-    obdWriteStringCustom(&obd, (GFXfont *)&Dialog_plain_16, 216, 84, (char *)buff, 1);
+    obdWriteStringCustom(&obd, (GFXfont *)&Dialog_plain_16, sidebar_x + 2, 84, (char *)buff, 1);
 
-    obdRectangle(&obd, 214, 27, 216, 99, 1, 1);
-    obdRectangle(&obd, 0, 97, 295, 99, 1, 1);
+    // Sidebar vertical line
+    obdRectangle(&obd, sidebar_x, 27, sidebar_x + 2, 99, 1, 1);
+    obdRectangle(&obd, 0, 97, w - 1, 99, 1, 1);
 
+    // Date row
     sprintf(buff, "%d-%02d-%02d", _time.tm_year, _time.tm_month, _time.tm_day);
-    obdWriteStringCustom(&obd, (GFXfont *)&Dialog_plain_16, 10, 120, (char *)buff, 1);
+    obdWriteStringCustom(&obd, (GFXfont *)&Dialog_plain_16, 10, h - 8, (char *)buff, 1);
 
     if (_time.tm_week == 7) {
         sprintf(buff, "9:%c", _time.tm_week + 0x20 + 6);
     } else {
         sprintf(buff, "9:%c", _time.tm_week + 0x20);
     }
-    obdWriteStringCustom(&obd, (GFXfont *)&Dialog_plain_16_zh, 120, 122, (char *)buff, 1);
+    obdWriteStringCustom(&obd, (GFXfont *)&Dialog_plain_16_zh, 120, h - 6, (char *)buff, 1);
 
     if (_time.tm_hour > 7 && _time.tm_hour < 20) {
         sprintf(buff, "%s", "EFGH");
     } else {
         sprintf(buff, "%s", "ABCD");
     }
-    obdWriteStringCustom(&obd, (GFXfont *)&Dialog_plain_16_zh, 200, 122, (char *)buff, 1);
+    obdWriteStringCustom(&obd, (GFXfont *)&Dialog_plain_16_zh, w - 96, h - 6, (char *)buff, 1);
 
-    FixBuffer(epd_temp, epd_buffer, epd_width, epd_height);
+    FixBuffer(epd_temp, epd_buffer, w, h);
 
-    EPD_Display(epd_buffer, NULL, epd_width * epd_height / 8, full_or_partial);
+    EPD_Display(epd_buffer, NULL, w * h / 8, full_or_partial);
 }

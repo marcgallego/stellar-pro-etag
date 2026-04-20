@@ -8,6 +8,12 @@ extern "C" {
 
 #define ADVERTISING_INTERVAL 4000
 
+// EPD model: 0=auto-detect, 1=BW213, 2=BWR213, 4=BW213ICE, 5=BWR296
+// Stellar Pro 290R-N = 5, Stellar Pro 213R-N = 2
+#ifndef EPD_DEFAULT_MODEL
+#define EPD_DEFAULT_MODEL 5
+#endif
+
 #define RAM _attribute_data_retention_ // short version, this is needed to keep the values in ram after sleep
 
 #include "application/print/u_printf.h"

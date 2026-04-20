@@ -16,6 +16,7 @@ extern uint8_t epd_temp[epd_buffer_size];
 	}
 
 extern uint8_t epd_buffer[epd_buffer_size];
+extern uint8_t epd_scene;
 unsigned int byte_pos = 0;
 
 int epd_ble_handle_write(void *p)
@@ -36,9 +37,10 @@ int epd_ble_handle_write(void *p)
 		memset(epd_temp, payload[1], epd_buffer_size);
 		ble_set_connection_speed(40);
 		return 0;
-	// Push buffer to display.
+	// Push buffer to display and switch to image mode.
 	case 0x01:
 		ble_set_connection_speed(200);
+		epd_scene = 0;
 		EPD_Display(epd_buffer, epd_temp, epd_buffer_size, payload[1]);
 		return 0;
 	// Set byte_pos.
@@ -66,6 +68,7 @@ int epd_ble_handle_write(void *p)
 		bls_att_pushNotifyData(EPD_BLE_CMD_OUT_DP_H, out_buffer, 2);
 		return 0;
 	case 0x04: // decode & display a TIFF image
+		epd_scene = 0;
 		epd_display_tiff(epd_buffer, byte_pos);
 		return 0;
 	default:

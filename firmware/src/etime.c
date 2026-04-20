@@ -3,23 +3,37 @@
 #include "drivers.h"
 #include "stack/ble/ble.h"
 #include "drivers/8258/flash.h"
+#include "drivers/8258/pm.h"
 #include "etime.h"
 #include "main.h"
 
-RAM uint16_t time_trime = 5000;// The higher the number the slower the time runs!, -32,768 to 32,767 
-RAM uint32_t one_second_trimmed = CLOCK_16M_SYS_TIMER_CLK_1S;
+// Use the 32kHz RC timer which persists through suspend and deep retention.
+// tick_32k_calib = number of 16MHz ticks per one 32kHz tick (set by SDK).
+// Real ticks per second = 16000000 / tick_32k_calib.
+extern unsigned short tick_32k_calib;
+
+RAM uint32_t ticks_32k_per_second;
 RAM uint32_t current_unix_time;
 RAM struct date_time current_date = {0};
 
-RAM uint32_t last_clock_increase;
+RAM uint32_t last_32k_tick;
 RAM uint32_t last_reached_period[10] = {0};
 RAM uint8_t has_ever_reached[10] = {0};
 
 uint8_t map[12] = {31, 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31};
 
+_attribute_ram_code_ void recalibrate_32k(void)
+{
+    if (tick_32k_calib)
+        ticks_32k_per_second = CLOCK_16M_SYS_TIMER_CLK_1S / tick_32k_calib;
+    else
+        ticks_32k_per_second = 32768;
+}
+
 _attribute_ram_code_ void init_time(void)
 {
-    one_second_trimmed += time_trime;
+    recalibrate_32k();
+    last_32k_tick = cpu_get_32k_tick();
     current_unix_time = 1709856857;
     current_date.tm_year = 2024;
     current_date.tm_month = 3;
@@ -32,10 +46,13 @@ _attribute_ram_code_ void init_time(void)
 
 _attribute_ram_code_ void handler_time(void)
 {
-    if (clock_time() - last_clock_increase >= one_second_trimmed)
+    uint32_t now = cpu_get_32k_tick();
+    uint32_t elapsed = now - last_32k_tick;
+    if (elapsed >= ticks_32k_per_second)
     {
-        last_clock_increase += one_second_trimmed;
-        current_unix_time++;
+        uint32_t seconds = elapsed / ticks_32k_per_second;
+        last_32k_tick += seconds * ticks_32k_per_second;
+        current_unix_time += seconds;
 
         current_date.tm_min = (current_unix_time / 60) % 60;
         current_date.tm_hour = ((current_unix_time / 60) / 60) % 24;

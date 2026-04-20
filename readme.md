@@ -1,37 +1,29 @@
-<h1 align="center">hanshow stellar L3N 电子价签/airtag固件</h1>
+# Stellar Pro ESL custom firmware
 
-### 适用型号 L3N@ (注意：只适配了L3N@ 2.9寸设备，原项目的其他型号可能已经不再兼容)
+## Supported models
 
-### 最终效果
+- Hanshow Stellar Pro 290R-N (supported, tested, and used as the main development device)
+- Hanshow Stellar Pro 213R-N (not tested but should be supported)
 
-- [web 上传图片](https://javabin.cn/stellar-L3N-etag/web_tools/)
-  ![蓝牙管理](/images/web.jpg)
-- 时钟模式2，图片模式
-  ![时钟模式2，图片模式](/images/1553702163.jpg)
+## How to flash?
 
-![时钟模式2，图片模式](/images/1587504241.jpg)
+1. Remove the battery cover and check if the mainboard looks like the diagram below.
 
-### 刷入固件步骤
+![Wiring diagram](/images/flashing_connection_usb_to_uart.jpg)
 
-- 1. 拆开电池后盖观察主板是否是如下图所示。（或者查看主控是否为TLSR8359）
+1. Solder four wires: GND, VCC, RX, RTS.
+2. Use a USB-to-TTL module (CH340) to connect the four wires. Connect RX to TX, TX to RX, VCC to 3.3V, GND to GND. Wire the RTS pin to pin 3 of the CH340G chip (or skip soldering and briefly connect RTS to GND before flashing).
+3. Open <https://atc1441.github.io/3TC_TLSR_Paper_UART_Flasher.html>. Keep the default baud rate of 460800, leave Atime as default, and select the file Firmware/ATC_Paper.bin.
+4. Click "Unlock" first, then click "Write to Flash" and wait for completion. Once successful, the screen will refresh automatically.
 
-![焊接图示](/USB_UART_Flashing_connection.jpg)
-
-- 2. 焊接 GND, VCC, RX, RTS四根线。
-- 3. 使用usb2ttl模块(CH340)链接焊接的四根线。其中rx 链接 tx, tx链接 rx, vcc链接3.3v, GND链接 GND。RTS飞线和芯片CH340G第三脚链接（也可不焊，烧录前手动和GND连一下）。
-- 4. 打开https://atc1441.github.io/ATC_TLSR_Paper_UART_Flasher.html, 波特率选择默认 460800，Atime默认，文件选择Firmware/ATC_Paper.bin
-- 5. 先点击unlock,再点击write to flush,等待完成。成功后，屏幕会自动刷新。
-
-### 项目编译
+## Building the Project
 
 ```cmd
-
-    cd Firmware
-    makeit.exe clean && makeit.exe -j12
-
+cd Firmware
+makeit.exe clean && makeit.exe -j12
 ```
 
-成功后提示内容:
+Output on success:
 
 ```
 'Create Flash image (binary format)'
@@ -52,54 +44,49 @@ Firmware CRC32: 0xe62d501e
 ' '
 ```
 
-### 蓝牙链接和OTA升级
+## Bluetooth Connection and OTA Update
 
-- 1. 必须先断开TTL TX线，不然蓝牙链接不上。
-- 2. OTA升级： https://atc1441.github.io/ATC_TLSR_Paper_OTA_writing.html
+1. You must disconnect the TTL TX wire first, otherwise Bluetooth connection will fail.
+2. OTA update: <https://atc1441.github.io/ATC_TLSR_Paper_OTA_writing.html>
 
-### 上传图片
+### Uploading Images
 
-- 1. 运行 `cd web_tools && python -m http.server`
-- 2. 打开 http://127.0.0.1:8000 后在页面上链接蓝牙
-- 3. 选择图片并上传，上传后可添加文字或者手动绘制文字。也可设置抖动算法。
-- 4. 发送到设备，等待屏幕刷新
+1. Run `cd web_tools && python -m http.server`
+2. Open <http://127.0.0.1:8000> and connect via Bluetooth on the page.
+3. Select and upload an image. After uploading, you can add text or draw manually. You can also set the dithering algorithm.
+4. Send to the device and wait for the screen to refresh.
 
-### 接入苹果findmy网络，模拟airtag
-- 设备已支持接入苹果findmy网络，(设备会通过蓝牙广播自动发送符合airtag协议的公钥，当设备附近的苹果设备接受到公钥时，就会使用公钥加密自己的位置信息然后发送到findmy服务器，用户可使用自己的私钥从苹果服务器获取设备的位置信息）
-- 该功能默认关闭
-- 打开该功能 需要修改ble.c文件 PUB_KEY=后的数据，改为你自己的公钥。PUB_KEY获取方法可参考项目(https://github.com/dchristl/macless-haystack 或者 https://github.com/malmeloo/openhaystack)
-- 打开该功能 还需要修改ble.c文件 AIR_TAG_OPEN=1
+### Apple FindMy Network / AirTag Emulation
 
-### 已解决/未解决问题
+- The device supports joining the Apple FindMy network. (The device broadcasts AirTag-compatible public keys via Bluetooth. When nearby Apple devices receive the public key, they encrypt their location data with it and send it to the FindMy server. You can then use your private key to retrieve the device's location from Apple's servers.)
+- This feature is disabled by default.
+- To enable it, modify the `PUB_KEY=` value in `ble.c` to your own public key. For instructions on generating keys, see: (<https://github.com/dchristl/macless-haystack> or <https://github.com/malmeloo/openhaystack>)
+- You also need to set `AIR_TAG_OPEN=1` in `ble.c`.
 
-- [X]  编译报错
-- [X]  刷入不生效
-- [X]  屏幕区域不对/异常
-- [X]  蓝牙无法链接/蓝牙OTA升级
-- [ ]  自动识别型号
-- [X]  python 图片生成脚本
-- [X]  蓝牙发送图片, 显示大小不对问题解决
-- [X]  添加蓝牙上传图片后notify
-- [X]  添加场景且支持切换
-- [X]  图片模式
-- [X]  web 支持图片切换
-- [X]  添加新的时间场景
-- [X]  支持设置年月日
-- [X]  web 支持画图编辑，直接上传图片，黑白抖动算法
-- [X]  三色抖动算法、设备端三色显示支持，蓝牙传输支持
-- [X]  epd buffer刷新后 数据异常（左或右偶尔有黑条）？
-- [X]  中文显示 （部分中文以bitmap显示，不支持全部中文）
-- [X]  支持接入苹果findmy网络，模拟airtag
+### Features
 
-### 原始readme.md
+- [X] Python image generation script
+- [X] Bluetooth image upload with incorrect display size
+- [X] Added BLE notification after image upload
+- [X] Added scenes with mode switching support
+- [X] Image mode
+- [X] Web image switching support
+- [X] Added new clock scene
+- [X] Support for setting year/month/day
+- [X] Web drawing editor, direct image upload, B&W dithering
+- [X] Tri-color dithering, device-side tri-color display, BLE transfer support
+- [X]  EPD buffer refresh data anomaly (occasional black bars on left/right)
+- [X]  Apple FindMy network support / AirTag emulation
 
-[README_EN.md](/README_en.md) （其他型号请参考原始项目，这个项目只支持L3N@ 2.9寸设备）
+### Acknowledgments
 
-> 注：
-> 基于该项目 [ATC_TLSR_Paper](https://github.com/atc1441/ATC_TLSR_Paper) 修改。
+I would like to thank the following projects and its contributors upon which this project is based:
 
-### 资料
+- [ATC_TLSR_Paper](https://github.com/atc1441/ATC_TLSR_Paper), by atc1441.
+- [stellar-L3N-etag](https://github.com/reece15/stellar-L3N-etag), by reece15.
 
-- [TLSR8359规格说明书](/docs/DS_TLSR8359-E_Datasheet for Telink ULP 2.4GHz RF SoC TLSR8359.pdf)
-- [tlsr8x5x蓝牙开发说明书（中文）](/docs/Telink Kite BLE SDK Developer Handbook中文.pdf)
-- [屏幕驱动说明书 SSD1680.pdf](/docs/SSD1680.pdf)
+### References
+
+- [TLSR8359 Datasheet](docs/Datasheet_Telink_ULP_2.4GHz_RF_SoC_TLSR8359.pdf)
+- [TLSR8x5x BLE SDK Developer Handbook](docs/Telink_Kite_BLE_SDK_Developer_Handbook.pdf)
+- [Display Driver Datasheet - SSD1680.pdf](/docs/SSD1680.pdf)

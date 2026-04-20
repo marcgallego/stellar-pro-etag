@@ -50,7 +50,7 @@ int epd_ble_handle_write(void *p)
 		return 0;
 	// Write data to image buffer.
 	case 0x03:
-		if ((payload[2] << 8 | payload[3]) + payload_len - 4 >= epd_buffer_size + 1)
+		if ((payload[2] << 8 | payload[3]) + payload_len - 4 > epd_buffer_size)
 		{
 		    out_buffer[0] = 0x00;
 		    out_buffer[1] = 0x00;

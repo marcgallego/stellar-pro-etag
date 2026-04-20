@@ -23,6 +23,8 @@ extern const uint8_t ucMirror[];
 #include "font30.h"
 
 RAM uint8_t epd_model = 0; // 0 = Undetected, 1 = BW213, 2 = BWR213, 3 = BWR154, 4 = BW213ICE, 5 BWR296
+RAM uint16_t epd_active_w = 296;
+RAM uint16_t epd_active_h = 128;
 const char *epd_model_string[] = {"NC", "BW213", "BWR213", "BWR154", "213ICE", "BWR296"};
 RAM uint8_t epd_update_state = 0;
 
@@ -41,13 +43,6 @@ RAM uint8_t epd_temp[epd_buffer_size]; // for OneBitDisplay to draw into
 OBDISP obd;                        // virtual display structure
 TIFFIMAGE tiff;
 
-// With this we can force a display if it wasnt detected correctly
-void set_EPD_model(uint8_t model_nr)
-{
-    epd_model = model_nr;
-}
-
-// With this we can force a display if it wasnt detected correctly
 void set_EPD_scene(uint8_t scene)
 {
     epd_scene = scene;
@@ -64,6 +59,9 @@ void set_EPD_wait_flush() {
 _attribute_ram_code_ void EPD_detect_model(void)
 {
     epd_model = EPD_DEFAULT_MODEL;
+    if (epd_model == 2) { epd_active_w = 250; epd_active_h = 128; }
+    else if (epd_model == 4) { epd_active_w = 212; epd_active_h = 104; }
+    else { epd_active_w = 296; epd_active_h = 128; }
 }
 
 _attribute_ram_code_ uint8_t EPD_read_temp(void)
@@ -192,9 +190,10 @@ _attribute_ram_code_ void TIFFDraw(TIFFDRAW *pDraw)
     uint8_t uc = 0, ucSrcMask, ucDstMask, *s, *d;
     int x, y;
 
+    int row_bytes = epd_active_h / 8;
     s = pDraw->pPixels;
     y = pDraw->y;                                              // current line
-    d = &epd_buffer[((epd_width - 1) * (epd_height / 8)) + (y / 8)]; // rotated 90 deg clockwise
+    d = &epd_buffer[((epd_active_w - 1) * row_bytes) + (y / 8)]; // rotated 90 deg clockwise
     ucDstMask = 0x80 >> (y & 7);                               // destination mask
     ucSrcMask = 0;                                             // src mask
     for (x = 0; x < pDraw->iWidth; x++)
@@ -206,7 +205,7 @@ _attribute_ram_code_ void TIFFDraw(TIFFDRAW *pDraw)
         }
         if (!(uc & ucSrcMask))
         { // black pixel
-            d[-(x * (epd_height / 8))] &= ~ucDstMask;
+            d[-(x * row_bytes)] &= ~ucDstMask;
         }
         ucSrcMask >>= 1;
     }
@@ -214,12 +213,14 @@ _attribute_ram_code_ void TIFFDraw(TIFFDRAW *pDraw)
 
 _attribute_ram_code_ void epd_display_tiff(uint8_t *pData, int iSize)
 {
+    if (!epd_model)
+        EPD_detect_model();
     epd_clear();
-    TIFF_openRAW(&tiff, epd_width, epd_height, BITDIR_MSB_FIRST, pData, iSize, TIFFDraw);
-    TIFF_setDrawParameters(&tiff, 65536, TIFF_PIXEL_1BPP, 0, 0, epd_width, epd_height, NULL);
+    TIFF_openRAW(&tiff, epd_active_w, epd_active_h, BITDIR_MSB_FIRST, pData, iSize, TIFFDraw);
+    TIFF_setDrawParameters(&tiff, 65536, TIFF_PIXEL_1BPP, 0, 0, epd_active_w, epd_active_h, NULL);
     TIFF_decode(&tiff);
     TIFF_close(&tiff);
-    EPD_Display(epd_buffer, NULL, epd_buffer_size, 1);
+    EPD_Display(epd_buffer, NULL, epd_active_w * epd_active_h / 8, 1);
 }
 
 extern uint8_t mac_public[6];
@@ -379,10 +380,10 @@ void epd_display_time_with_date(struct date_time _time, uint16_t battery_mv, int
     // Horizontal separator
     obdRectangle(&obd, 0, 25, w - 1, 27, 1, 1);
 
-    // Clock (centered in main area)
+    // Clock and sidebar
     uint16_t sidebar_x = w - 82;
     sprintf(buff, "%02d:%02d", _time.tm_hour, _time.tm_min);
-    obdWriteStringCustom(&obd, (GFXfont *)&DSEG14_Classic_Mini_Regular_40, (sidebar_x - 180) / 2, 85, (char *)buff, 1);
+    obdWriteStringCustom(&obd, (GFXfont *)&DSEG14_Classic_Mini_Regular_40, sidebar_x / 6, 85, (char *)buff, 1);
 
     // Sidebar: temp + voltage
     sprintf(buff, "   %d'C", EPD_read_temp());

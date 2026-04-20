@@ -1,0 +1,36 @@
+name: Build Firmware
+
+on:
+  release:
+    types: [created]
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        include:
+          - epd_model: 5
+            name: BWR296_290R-N
+          - epd_model: 2
+            name: BWR213_213R-N
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set toolchain permissions
+        run: chmod +x firmware/tc32_linux/bin/*
+
+      - name: Build firmware (EPD model ${{ matrix.epd_model }} - ${{ matrix.name }})
+        run: |
+          cd firmware
+          make clean || true
+          make -j$(nproc) EXTRA_CFLAGS="-DEPD_DEFAULT_MODEL=${{ matrix.epd_model }}"
+
+      - name: Rename binary
+        run: cp firmware/ATC_Paper.bin ATC_Paper_${{ matrix.name }}.bin
+
+      - name: Upload release asset
+        uses: softprops/action-gh-release@v2
+        with:
+          files: ATC_Paper_${{ matrix.name }}.bin

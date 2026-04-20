@@ -115,7 +115,7 @@ _attribute_ram_code_ void EPD_Display(unsigned char *image, unsigned char *red_i
     if (epd_model == 1)
         epd_temperature = EPD_BW_213_Display(image, size, full_or_partial);
     else if (epd_model == 2)
-        epd_temperature = EPD_BWR_213_Display(image, size, full_or_partial);
+        epd_temperature = EPD_BWR_213_Display(image, red_image, size, full_or_partial);
 //    else if (epd_model == 3)
 //        epd_temperature = EPD_BWR_154_Display(image, size, full_or_partial);
     else if (epd_model == 4)
@@ -154,13 +154,15 @@ _attribute_ram_code_ uint8_t epd_state_handler(void)
         // Nothing todo
         break;
     case 1: // check if refresh is done and sleep epd if so
-        if (epd_model == 1)
+        if (epd_model == 1 || epd_model == 2)
         {
+            // UC8151C: BUSY pin HIGH = idle
             if (!EPD_IS_BUSY())
                 epd_set_sleep();
         }
         else
         {
+            // SSD1680: BUSY pin LOW = idle
             if (EPD_IS_BUSY())
                 epd_set_sleep();
         }

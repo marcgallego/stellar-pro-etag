@@ -1,8 +1,8 @@
-name: Build Firmware
+name: Build firmware
 
 on:
   release:
-    types: [created]
+    types: [ created ]
 
 jobs:
   build:
@@ -11,15 +11,15 @@ jobs:
       matrix:
         include:
           - epd_model: 5
-            name: BWR296_290R-N
+            name: 290R-N
           - epd_model: 2
-            name: BWR213_213R-N
+            name: 213R-N
 
     steps:
       - uses: actions/checkout@v4
 
       - name: Set toolchain permissions
-        run: chmod +x firmware/tc32_linux/bin/*
+        run: chmod -R +x firmware/tc32_linux/
 
       - name: Build firmware (EPD model ${{ matrix.epd_model }} - ${{ matrix.name }})
         run: |

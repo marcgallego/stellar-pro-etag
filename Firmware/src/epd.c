@@ -273,7 +273,7 @@ _attribute_ram_code_ void epd_display(struct date_time _time, uint16_t battery_m
     sprintf(buff, "S24_%02X%02X%02X %s", mac_public[2], mac_public[1], mac_public[0], epd_model_string[epd_model]);
     obdWriteStringCustom(&obd, (GFXfont *)&Dialog_plain_16, 1, 17, (char *)buff, 1);
     sprintf(buff, "%s", BLE_conn_string[ble_get_connected()]);
-    obdWriteStringCustom(&obd, (GFXfont *)&Dialog_plain_16, 232, 20, (char *)buff, 1);
+    obdWriteStringCustom(&obd, (GFXfont *)&Dialog_plain_16, resolution_w - 64, 20, (char *)buff, 1);
     sprintf(buff, "%02d:%02d", _time.tm_hour, _time.tm_min);
     obdWriteStringCustom(&obd, (GFXfont *)&DSEG14_Classic_Mini_Regular_40, 75, 65, (char *)buff, 1);
     sprintf(buff, "-----%d'C-----", EPD_read_temp());
@@ -286,12 +286,15 @@ _attribute_ram_code_ void epd_display(struct date_time _time, uint16_t battery_m
 
 _attribute_ram_code_ void epd_display_char(uint8_t data)
 {
+    if (!epd_model)
+        EPD_detect_model();
+    int size = epd_active_w * epd_active_h / 8;
     int i;
-    for (i = 0; i < epd_buffer_size; i++)
+    for (i = 0; i < size; i++)
     {
         epd_buffer[i] = data;
     }
-    EPD_Display(epd_buffer, NULL, epd_buffer_size, 1);
+    EPD_Display(epd_buffer, NULL, size, 1);
 }
 
 _attribute_ram_code_ void epd_clear(void)

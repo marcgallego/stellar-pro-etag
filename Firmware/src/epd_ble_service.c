@@ -68,6 +68,8 @@ int epd_ble_handle_write(void *p)
 		bls_att_pushNotifyData(EPD_BLE_CMD_OUT_DP_H, out_buffer, 2);
 		return 0;
 	case 0x04: // decode & display a TIFF image
+		if (byte_pos == 0 || byte_pos > epd_buffer_size)
+			return 0;
 		epd_scene = 0;
 		epd_display_tiff(epd_buffer, byte_pos);
 		return 0;

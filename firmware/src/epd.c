@@ -19,7 +19,6 @@
 extern const uint8_t ucMirror[];
 #include "font_60.h"
 #include "font16.h"
-#include "font16zh.h"
 #include "font30.h"
 
 RAM uint8_t epd_model = 0; // 0 = Undetected, 1 = BW213, 2 = BWR213, 3 = BWR154, 4 = BW213ICE, 5 BWR296
@@ -366,12 +365,12 @@ void epd_display_time_with_date(struct date_time _time, uint16_t battery_mv, int
     obdWriteStringCustom(&obd, (GFXfont *)&Dialog_plain_16, 1, 17, (char *)buff, 1);
 
     if (ble_get_connected()) {
-        sprintf(buff, "78%s", "234");
+        sprintf(buff, "BT on");
     } else {
-        sprintf(buff, "78%s", "56");
+        sprintf(buff, "BT off");
     }
 
-    obdWriteStringCustom(&obd, (GFXfont *)&Dialog_plain_16_zh, 120, 21, (char *)buff, 1);
+    obdWriteStringCustom(&obd, (GFXfont *)&Dialog_plain_16, 120, 21, (char *)buff, 1);
 
     // Battery icon (right-aligned)
     obdRectangle(&obd, w - 44, 10, w - 41, 14, 1, 1);
@@ -405,19 +404,18 @@ void epd_display_time_with_date(struct date_time _time, uint16_t battery_mv, int
     sprintf(buff, "%d-%02d-%02d", _time.tm_year, _time.tm_month, _time.tm_day);
     obdWriteStringCustom(&obd, (GFXfont *)&Dialog_plain_16, 10, h - 8, (char *)buff, 1);
 
-    if (_time.tm_week == 7) {
-        sprintf(buff, "9:%c", _time.tm_week + 0x20 + 6);
-    } else {
-        sprintf(buff, "9:%c", _time.tm_week + 0x20);
+    {
+        const char *weekdays[] = {"", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"};
+        sprintf(buff, "%s", weekdays[_time.tm_week]);
     }
-    obdWriteStringCustom(&obd, (GFXfont *)&Dialog_plain_16_zh, 120, h - 6, (char *)buff, 1);
+    obdWriteStringCustom(&obd, (GFXfont *)&Dialog_plain_16, 120, h - 6, (char *)buff, 1);
 
     if (_time.tm_hour > 7 && _time.tm_hour < 20) {
-        sprintf(buff, "%s", "EFGH");
+        sprintf(buff, "Drink water");
     } else {
-        sprintf(buff, "%s", "ABCD");
+        sprintf(buff, "Rest well");
     }
-    obdWriteStringCustom(&obd, (GFXfont *)&Dialog_plain_16_zh, w - 96, h - 6, (char *)buff, 1);
+    obdWriteStringCustom(&obd, (GFXfont *)&Dialog_plain_16, w - 96, h - 6, (char *)buff, 1);
 
     FixBuffer(epd_temp, epd_buffer, w, h);
 

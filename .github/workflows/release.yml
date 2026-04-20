@@ -19,7 +19,7 @@ jobs:
             name: 213R-N
 
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
 
       - name: Set toolchain permissions
         run: chmod -R +x firmware/tc32_linux/
@@ -34,6 +34,6 @@ jobs:
         run: cp firmware/ATC_Paper.bin ATC_Paper_${{ matrix.name }}.bin
 
       - name: Upload release asset
-        uses: softprops/action-gh-release@v2
+        uses: softprops/action-gh-release@v3
         with:
           files: ATC_Paper_${{ matrix.name }}.bin

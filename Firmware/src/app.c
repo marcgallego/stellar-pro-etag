@@ -36,7 +36,7 @@ _attribute_ram_code_ void user_init_normal(void)
 _attribute_ram_code_ void user_init_deepRetn(void)
 { // after sleep this will get executed
     blc_ll_initBasicMCU();
-    rf_set_power_level_index(RF_POWER_P3p01dBm);
+    rf_set_power_level_index(RF_POWER_P0p04dBm);
     blc_ll_recoverDeepRetention();
 }
 
@@ -61,21 +61,18 @@ _attribute_ram_code_ void main_loop(void)
 
     epd_update(get_time(), battery_mv, temperature);
 
-    if (time_reached_period(Timer_CH_0, 10))
+    if (ble_get_connected() && time_reached_period(Timer_CH_0, 10))
     {
-        if (ble_get_connected())
-            set_led_color(3);
-        else
-            set_led_color(2);
+        set_led_color(3);
         WaitMs(1);
         set_led_color(0);
     }
 
-    if (epd_state_handler()) // if epd_update is ongoing enable gpio wakeup to put the display to sleep as fast as possible
+    if (epd_state_handler()) // if epd_update is ongoing allow suspend and wake when BUSY goes LOW (idle)
     {
-        cpu_set_gpio_wakeup(EPD_BUSY, 1, 1);
+        cpu_set_gpio_wakeup(EPD_BUSY, 0, 1);
         bls_pm_setWakeupSource(PM_WAKEUP_PAD);
-        bls_pm_setSuspendMask(SUSPEND_DISABLE);
+        bls_pm_setSuspendMask(SUSPEND_ADV | SUSPEND_CONN);
     }
     else
     {

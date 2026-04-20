@@ -30,11 +30,11 @@ int epd_ble_handle_write(void *p)
 
 	switch (payload[0])
 	{
-	// Clear EPD display.
+	// Clear EPD display (BW buffer + red buffer).
 	case 0x00:
-	    ASSERT_MIN_LEN(payload_len, 2);
+	    ASSERT_MIN_LEN(payload_len, 3);
 		memset(epd_buffer, payload[1], epd_buffer_size);
-		memset(epd_temp, payload[1], epd_buffer_size);
+		memset(epd_temp, payload[2], epd_buffer_size);
 		ble_set_connection_speed(40);
 		return 0;
 	// Push buffer to display and switch to image mode.

@@ -502,8 +502,9 @@
 	<button type="button" onclick="triggerRxTxCmd('e100')" title="Switch to image mode. Uploaded images will persist on screen.">Image Mode</button>
 	<button type="button" onclick="triggerRxTxCmd('e101')" title="Switch to clock mode 1">Clock Mode 1</button>
 	<button type="button" onclick="triggerRxTxCmd('e102')" title="Switch to clock mode 2">Clock Mode 2</button>
-	<button type="button" onclick="clearScreen('00')">Clear Black</button>
-	<button type="button" onclick="clearScreen('ff')">Clear White</button>
+	<button type="button" onclick="clearScreen('0000')">Clear Black</button>
+	<button type="button" onclick="clearScreen('ff00')">Clear White</button>
+	<button type="button" onclick="clearScreen('ffff')">Clear Red</button>
 	<button type="button" onclick="triggerEpdCmd('0101')">Refresh (Full)</button>
 	<button type="button" onclick="triggerEpdCmd('0100')">Refresh (Partial)</button>
 	<br><br>

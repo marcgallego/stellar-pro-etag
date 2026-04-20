@@ -83,7 +83,7 @@ _attribute_ram_code_ void ble_disconnect_callback(uint8_t e, uint8_t *p, int n)
 
 _attribute_ram_code_ void user_set_rf_power(uint8_t e, uint8_t *p, int n)
 {
-	rf_set_power_level_index(RF_POWER_P0p04dBm);
+	rf_set_power_level_index(RF_POWER_P3p01dBm);
 }
 
 _attribute_ram_code_ void ble_connect_callback(uint8_t e, uint8_t *p, int n)

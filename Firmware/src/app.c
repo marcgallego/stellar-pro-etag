@@ -36,7 +36,7 @@ _attribute_ram_code_ void user_init_normal(void)
 _attribute_ram_code_ void user_init_deepRetn(void)
 { // after sleep this will get executed
     blc_ll_initBasicMCU();
-    rf_set_power_level_index(RF_POWER_P0p04dBm);
+    rf_set_power_level_index(RF_POWER_P3p01dBm);
     blc_ll_recoverDeepRetention();
 }
 

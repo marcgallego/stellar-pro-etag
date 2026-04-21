@@ -38,7 +38,7 @@ _attribute_ram_code_ void user_init_deepRetn(void)
     blc_ll_initBasicMCU();
     rf_set_power_level_index(RF_POWER_P3p01dBm);
     blc_ll_recoverDeepRetention();
-    recalibrate_32k();
+    compensate_sleep_time();
 }
 
 _attribute_ram_code_ void main_loop(void)
@@ -54,7 +54,6 @@ _attribute_ram_code_ void main_loop(void)
         set_adv_data(EPD_read_temp() * 10, battery_level, battery_mv);
         ble_send_battery(battery_level);
         ble_send_temp(EPD_read_temp() * 10);
-        recalibrate_32k();
         flag = 1;
     }
     if (!flag && time_reached_period(Timer_CH_3, 17)) {

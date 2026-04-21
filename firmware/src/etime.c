@@ -7,33 +7,44 @@
 #include "etime.h"
 #include "main.h"
 
-// Use the 32kHz RC timer which persists through suspend and deep retention.
-// tick_32k_calib = number of 16MHz ticks per one 32kHz tick (set by SDK).
-// Real ticks per second = 16000000 / tick_32k_calib.
+// SDK-internal variables updated by pm_tim_recover_32k_rc() on every wake
+extern unsigned int  tick_32k_cur;
 extern unsigned short tick_32k_calib;
 
-RAM uint32_t ticks_32k_per_second;
+RAM uint32_t one_second_trimmed = CLOCK_16M_SYS_TIMER_CLK_1S;
 RAM uint32_t current_unix_time;
 RAM struct date_time current_date = {0};
 
-RAM uint32_t last_32k_tick;
+RAM uint32_t last_clock_increase;
 RAM uint32_t last_reached_period[10] = {0};
 RAM uint8_t has_ever_reached[10] = {0};
 
+// 32k tick saved before each sleep, used to compute sleep duration on wake
+RAM uint32_t tick_32k_before_sleep;
+
 uint8_t map[12] = {31, 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31};
 
-_attribute_ram_code_ void recalibrate_32k(void)
+_attribute_ram_code_ int save_tick_before_sleep(void)
 {
-    if (tick_32k_calib)
-        ticks_32k_per_second = CLOCK_16M_SYS_TIMER_CLK_1S / tick_32k_calib;
-    else
-        ticks_32k_per_second = 32768;
+    tick_32k_before_sleep = tick_32k_cur;
+    return 0;
+}
+
+_attribute_ram_code_ void compensate_sleep_time(void)
+{
+    uint32_t elapsed_32k = tick_32k_cur - tick_32k_before_sleep;
+    uint32_t ticks_per_sec = tick_32k_calib
+        ? (CLOCK_16M_SYS_TIMER_CLK_1S / tick_32k_calib)
+        : 32768;
+    uint32_t sleep_seconds = elapsed_32k / ticks_per_sec;
+    current_unix_time += sleep_seconds;
+    last_clock_increase = clock_time();
 }
 
 _attribute_ram_code_ void init_time(void)
 {
-    recalibrate_32k();
-    last_32k_tick = cpu_get_32k_tick();
+    bls_pm_registerFuncBeforeSuspend(save_tick_before_sleep);
+    tick_32k_before_sleep = tick_32k_cur;
     current_unix_time = 1709856857;
     current_date.tm_year = 2024;
     current_date.tm_month = 3;
@@ -46,13 +57,10 @@ _attribute_ram_code_ void init_time(void)
 
 _attribute_ram_code_ void handler_time(void)
 {
-    uint32_t now = cpu_get_32k_tick();
-    uint32_t elapsed = now - last_32k_tick;
-    if (elapsed >= ticks_32k_per_second)
+    if (clock_time() - last_clock_increase >= one_second_trimmed)
     {
-        uint32_t seconds = elapsed / ticks_32k_per_second;
-        last_32k_tick += seconds * ticks_32k_per_second;
-        current_unix_time += seconds;
+        last_clock_increase += one_second_trimmed;
+        current_unix_time++;
 
         current_date.tm_min = (current_unix_time / 60) % 60;
         current_date.tm_hour = ((current_unix_time / 60) / 60) % 24;

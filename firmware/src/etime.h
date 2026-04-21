@@ -26,7 +26,7 @@ struct date_time
 };
 
 void init_time(void);
-void recalibrate_32k(void);
+void compensate_sleep_time(void);
 void handler_time(void);
 uint8_t time_reached_period(timer_channel ch, uint32_t seconds);
 void set_time(uint32_t time_now, uint16_t time_year, uint8_t time_month, uint8_t time_day, uint8_t time_week);
